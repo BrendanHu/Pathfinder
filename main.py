@@ -1,31 +1,36 @@
-import pygame
+import os
 import sys
 import math as m
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
-import os
-
+import pygame
+# Ensure screen shows in the same place every time
+screen_x = 100
+screen_y = 200
+os.environ['SDL_VIDEO_WINDOW_POS'] = "{0},{1}".format(screen_x, screen_y)
 # Initialize pygame
 pygame.init()
-
 # Create game window
 screen = pygame.display.set_mode((800, 800))
-
 # Title and icon
-pygame.display.set_caption("Pathfinder") # title
+pygame.display.set_caption("Pathfinder")
 # icon = pygame.image.load("sudoku.png")
 # pygame.display.set_icon(icon)
 
-# creates point class
+
 class point:
+    """Creates an object representing a point (square) on the grid."""
     def __init__(self, i, j):
         self.i = i
         self.j = j
-        self.f = 0 # cost function (how much time/resource allocation is required)
-        self.g = 0 # actual "cost" from one node to the next
-        self.h = 0 # heuristic "cost" (educated guess of how far the goal node is from the new node) NOTE: h can NEVER overestimate the a
-                   # or we risk getting an incorrect answer (this is fine, because the heuristic uses the straight-line distance formula)
+        # cost function (how much time/resource allocation is required)
+        self.f = 0
+        # actual "cost" from one node to the next
+        self.g = 0
+        # heuristic "cost" (educated guess of how far the goal node is from the new node) NOTE: h can NEVER overestimate the a
+        # or we risk getting an incorrect answer (this is fine, because the heuristic uses the straight-line distance formula)
+        self.h = 0
         self.neighbours = []
         self.previous = None
         self.wall = False
@@ -33,8 +38,8 @@ class point:
 
     def show(self, color, margin):
         if not self.processed:
-           pygame.draw.rect(screen, color, (self.i * box_width, self.j * box_length, box_width, box_length), margin)
-           pygame.display.update()
+            pygame.draw.rect(screen, color, (self.i * box_width, self.j * box_length, box_width, box_length), margin)
+            pygame.display.update()
 
     def addNeighbours(self, grid):
         if self.i > 0:
@@ -49,6 +54,7 @@ class point:
         if self.j < rows - 1:
             self.neighbours.append(grid[self.i][self.j + 1])
 
+
 # create obstacles on mouse click
 def makeWall(x, y):
     if grid[x][y] != start and grid[x][y] != end:
@@ -56,10 +62,12 @@ def makeWall(x, y):
             grid[x][y].wall = True
             grid[x][y].show(orange, 0)
 
+
 # heuristic used by A* to estimate most optimal route
 def heuristic(a, b):
     distance = m.sqrt(m.pow(b.i - a.i, 2) + m.pow(b.j - a.j, 2))
     return distance
+
 
 # grid variables and creation
 rows = 50
@@ -89,9 +97,9 @@ done = False
 # start and end points
 start = grid[1][1]
 end = grid[24][24]
-open_set = [] # stores a list of all nodes that must still be evaluated
-open_set.append(start) # base case, should the user leave the input blank
-closed_set = [] # stores a list of all nodes that are already evaluated
+open_set = []  # stores a list of all nodes that must still be evaluated
+open_set.append(start)  # base case, should the user leave the input blank
+closed_set = []  # stores a list of all nodes that are already evaluated
 
 # show squares and add neighbours
 for i in range(columns):
@@ -111,8 +119,10 @@ for i in range(columns):
 #     grid[i][rows-1].wall = True
 
 # ------------------------------------ MAIN LOOP FUNCTION ----------------------------------------
-# Contains the A* algorithm
+
+
 def main():
+    """Contains the A* algorithm."""
     # breaks the algorithm loop should there be no more points to search
     if len(open_set) != 0:
         # checks which point in open_set has the lowest f (cost function)
@@ -133,8 +143,9 @@ def main():
             # Display information for path found
             done_window = Tk()
             done_window.title("Done!")
-            done_window.geometry("200x60")
+            done_window.geometry("500x80+250+450")
             distMsg = Label(done_window, text="The shortest path is {0} blocks long.".format(len(path_length)))
+            distMsg.config(font=("Arial", 18, "bold"))
             doneButton = Button(done_window, text="OK", command=done_window.destroy)
 
             distMsg.pack()
@@ -146,7 +157,8 @@ def main():
             done = True
             while done:
                 for event in pygame.event.get():
-                    if event.type == pygame.QUIT: sys.exit()
+                    if event.type == pygame.QUIT:
+                        sys.exit()
         # point has been processed, add to closed_set and remove from open_set
         closed_set.append(current)
         open_set.pop(lowest_index)
@@ -165,7 +177,7 @@ def main():
             neighbour.h = heuristic(neighbour, end)
             neighbour.f = neighbour.g + neighbour.h
             # ensure previous isn't overwritten if it already exists
-            if neighbour.previous == None:
+            if neighbour.previous is None:
                 neighbour.previous = current
     # given no solution, leave the window open and indicate this to the user
     else:
@@ -174,11 +186,12 @@ def main():
         done = True
         while done:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT: sys.exit()
+                if event.type == pygame.QUIT:
+                    sys.exit()
     # shows algorithm at work
     if checked_show_steps.get():
         for spot in open_set:
-            if spot != start and spot != end:
+            if spot not in (start, end):
                 spot.show(green, 0)
         for spot in closed_set:
             if spot != start:
@@ -186,13 +199,14 @@ def main():
 
     current.processed = True
 
+
 # ------------------------------------- START/END/COORDINATE CHOICE LOOPS ------------------------------------------
 user_choosing_start = True
 user_choosing_end = True
 user_choosing_walls = True
-# Option to show algorithm visualizer
+# Option to show algorithm visualizer and skip the tutorial
 window = Tk()
-window.geometry("250x80")
+window.geometry("250x80+400+200")
 window.title("A* Search")
 checked_show_steps = IntVar()
 skip = IntVar()
@@ -211,24 +225,28 @@ mainloop()
 if not skip.get():
     start_window = Tk()
     start_window.title("Instructions")
-    start_instr = Label(start_window, text="Click on a square to pick it as the start point!")
+    start_window.geometry("350x80+350+70")
+    start_instr = Label(start_window, text="Click on a square to pick\nit as the start point!")
+    start_instr.config(font=("Arial", 16, "bold"))
     ok = Button(start_window, text="OK", command=start_window.destroy)
 
-    start_instr.grid(row=0, pady=3)
-    ok.grid(columnspan=6, row=3)
+    start_instr.pack()
+    ok.pack()
 
     start_window.update()
     mainloop()
 
 while user_choosing_start:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
+        if event.type == pygame.QUIT:
+            sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             start_x, start_y = mouse_x // box_width, mouse_y // box_length
             if not grid[start_x][start_y].wall:
                 start = grid[start_x][start_y]
-            else: continue
+            else:
+                continue
 
             if start != grid[1][1]:
                 open_set.pop(0)
@@ -244,24 +262,28 @@ while user_choosing_start:
 if not skip.get():
     end_window = Tk()
     end_window.title("Instructions")
-    end_instr = Label(end_window, text="Click on a square to pick it as the end point!")
+    end_window.geometry("350x80+350+70")
+    end_instr = Label(end_window, text="Click on a square to\npick it as the end point!")
+    end_instr.config(font=("Arial", 16, "bold"))
     ok = Button(end_window, text="OK", command=end_window.destroy)
 
-    end_instr.grid(row=0, pady=3)
-    ok.grid(columnspan=6, row=3)
+    end_instr.pack()
+    ok.pack()
 
     end_window.update()
     mainloop()
 
 while user_choosing_end:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
+        if event.type == pygame.QUIT:
+            sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             end_x, end_y = mouse_x // box_width, mouse_y // box_length
             if not grid[end_x][end_y].wall:
                 end = grid[end_x][end_y]
-            else: continue
+            else:
+                continue
 
             end.show(purple, 0)
             pygame.display.update()
@@ -272,18 +294,22 @@ while user_choosing_end:
 if not skip.get():
     wall_window = Tk()
     wall_window.title("Instructions")
-    end_instr = Label(wall_window, text="Click and drag with the mouse to create walls that the algorithm must path around.\nPress SPACE to start the program!")
+    wall_window.geometry("800x70+100+90")
+    wall_instr = Label(wall_window, text="Click and drag with the mouse to create walls that the "
+                       "algorithm must path around.\nPress SPACE to start the program!")
+    wall_instr.config(font=("Arial", 14, "bold"))
     ok = Button(wall_window, text="OK", command=wall_window.destroy)
 
-    end_instr.grid(row=0, pady=3)
-    ok.grid(columnspan=6, row=3)
+    wall_instr.pack()
+    ok.pack()
 
     wall_window.update()
     mainloop()
 
 while user_choosing_walls:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
+        if event.type == pygame.QUIT:
+            sys.exit()
         if pygame.mouse.get_pressed()[0]:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             box_x, box_y = mouse_x // box_width, mouse_y // box_length
