@@ -66,6 +66,8 @@ def makeWall(x, y):
 # heuristic used by A* to estimate most optimal route
 def heuristic(a, b):
     distance = m.sqrt(m.pow(b.i - a.i, 2) + m.pow(b.j - a.j, 2))
+    # Manhattan distance can be used as an alternative to the straight line formula
+    # distance = abs(a.i - b.i) + abs(a.j - b.j) TODO: if this is used, I'd have to figure out diagonals
     return distance
 
 
@@ -107,17 +109,6 @@ for i in range(columns):
         grid[i][j].show(grey, 1)
         grid[i][j].addNeighbours(grid)
 
-# make bordering walls
-# for i in range(0, rows):
-#     grid[0][i].show(red, 0)
-#     grid[0][i].wall = True
-#     grid[columns-1][i].wall = True
-#     grid[columns-1][i].show(red, 0)
-#     grid[i][rows-1].show(red, 0)
-#     grid[i][0].show(red, 0)
-#     grid[i][0].wall = True
-#     grid[i][rows-1].wall = True
-
 # ------------------------------------ MAIN LOOP FUNCTION ----------------------------------------
 
 
@@ -141,6 +132,7 @@ def main():
                 path_length.append(0)
             end.show(purple, 0)
             # Display information for path found
+            # TODO: Find a way to let the user exit without clicking the ok button
             done_window = Tk()
             done_window.title("Done!")
             done_window.geometry("500x80+250+450")
@@ -181,8 +173,18 @@ def main():
                 neighbour.previous = current
     # given no solution, leave the window open and indicate this to the user
     else:
-        print("No solution")
-        sys.exit()
+        done_window = Tk()
+        done_window.title("Done!")
+        done_window.geometry("250x80+400+450")
+        distMsg = Label(done_window, text="There is no path!  :(")
+        distMsg.config(font=("Arial", 18, "bold"))
+        doneButton = Button(done_window, text="OK", command=done_window.destroy)
+
+        distMsg.pack()
+        doneButton.pack()
+
+        done_window.update()
+        mainloop()
         done = True
         while done:
             for event in pygame.event.get():
@@ -240,7 +242,7 @@ while user_choosing_start:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if pygame.mouse.get_pressed()[0]:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             start_x, start_y = mouse_x // box_width, mouse_y // box_length
             if not grid[start_x][start_y].wall:
@@ -277,10 +279,10 @@ while user_choosing_end:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if pygame.mouse.get_pressed()[0]:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             end_x, end_y = mouse_x // box_width, mouse_y // box_length
-            if not grid[end_x][end_y].wall:
+            if not grid[end_x][end_y].wall and grid[start_x][start_y] != grid[end_x][end_y]:
                 end = grid[end_x][end_y]
             else:
                 continue
