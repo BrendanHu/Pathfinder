@@ -5,14 +5,17 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 import pygame
-# Ensure screen shows in the same place every time
+
+# Changes user's working directory to the location of the file (only really matters in Atom, in my experience)
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Ensures screen shows in the same place every time
 screen_x = 100
-screen_y = 200
+screen_y = 100
 os.environ['SDL_VIDEO_WINDOW_POS'] = "{0},{1}".format(screen_x, screen_y)
 # Initialize pygame
 pygame.init()
 # Create game window
-screen = pygame.display.set_mode((800, 800))
+screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
 # Title and icon
 pygame.display.set_caption("Pathfinder")
 # icon = pygame.image.load("sudoku.png")
@@ -28,17 +31,16 @@ class point:
         self.f = 0
         # actual "cost" from one node to the next
         self.g = 0
-        # heuristic "cost" (educated guess of how far the goal node is from the new node) NOTE: h can NEVER overestimate the a
-        # or we risk getting an incorrect answer (this is fine, because the heuristic uses the straight-line distance formula)
+        # heuristic "cost" (educated guess of how far the goal node is from the new node)
         self.h = 0
         self.neighbours = []
         self.previous = None
         self.wall = False
         self.processed = False
 
-    def show(self, color, margin):
+    def show(self, color, grid_thickness):
         if not self.processed:
-            pygame.draw.rect(screen, color, (self.i * box_width, self.j * box_length, box_width, box_length), margin)
+            pygame.draw.rect(screen, color, (self.i * box_width, self.j * box_length, box_width, box_length), grid_thickness)
             pygame.display.update()
 
     def addNeighbours(self, grid):
@@ -54,13 +56,17 @@ class point:
         if self.j < rows - 1:
             self.neighbours.append(grid[self.i][self.j + 1])
 
+    # for debugging
+    def __repr__(self):
+        return "Point with x = {}, y = {}".format(self.i, self.j)
+
 
 # create obstacles on mouse click
 def makeWall(x, y):
     if grid[x][y] != start and grid[x][y] != end:
         if not grid[x][y].wall:
             grid[x][y].wall = True
-            grid[x][y].show(orange, 0)
+            grid[x][y].show(wall_color, 0)
 
 
 # heuristic used by A* to estimate most optimal route
@@ -69,7 +75,6 @@ def heuristic(a, b):
     # Manhattan distance can be used as an alternative to the straight line formula
     # distance = abs(a.i - b.i) + abs(a.j - b.j) TODO: if this is used, I'd have to figure out diagonals
     return distance
-
 
 # grid variables and creation
 rows = 50
@@ -84,23 +89,22 @@ for i in range(columns):
         grid[i][j] = point(i, j)
 
 # assorted variables
-red = (255, 75, 75)
-orange = (255, 100, 0)
-green = (0, 255, 0)
-blue = (0, 0, 255)
-grey = (192, 192, 192)
-white = (255, 255, 255)
-purple = (255, 8, 200)
+gold = (255,234,171) # closed set colour
+wall_color = (0,0,0)
+green = (100,255,150) # open set colour
+path_colour = (171,192,255)
+grey = (112,128,144) # grid colour
+off_white = (240, 255, 255) # screen colour
 box_width = 800 // columns
 box_length = 800 // rows
 path = []
 done = False
 
-# start and end points
-start = grid[1][1]
-end = grid[24][24]
+# makes the background off-white
+screen.fill(off_white)
+
+# initializes lists for open set and closed set
 open_set = []  # stores a list of all nodes that must still be evaluated
-open_set.append(start)  # base case, should the user leave the input blank
 closed_set = []  # stores a list of all nodes that are already evaluated
 
 # show squares and add neighbours
@@ -125,12 +129,14 @@ def main():
         current = open_set[lowest_index]
         if current == end:
             path_length = []
+            # Calculates and renders path on screen
             for i in range(round(current.f)):
                 current.processed = False
-                current.show(blue, 0)
+                if not current == end:
+                    current.show(path_colour, 0)
                 current = current.previous
                 path_length.append(0)
-            end.show(purple, 0)
+
             # Display information for path found
             # TODO: Find a way to let the user exit without clicking the ok button
             done_window = Tk()
@@ -185,6 +191,7 @@ def main():
 
         done_window.update()
         mainloop()
+
         done = True
         while done:
             for event in pygame.event.get():
@@ -197,15 +204,13 @@ def main():
                 spot.show(green, 0)
         for spot in closed_set:
             if spot != start:
-                spot.show(grey, 0)
+                spot.show(gold, 0)
 
     current.processed = True
 
 
 # ------------------------------------- START/END/COORDINATE CHOICE LOOPS ------------------------------------------
-user_choosing_start = True
-user_choosing_end = True
-user_choosing_walls = True
+
 # Option to show algorithm visualizer and skip the tutorial
 window = Tk()
 window.geometry("250x80+400+200")
@@ -238,28 +243,45 @@ if not skip.get():
     start_window.update()
     mainloop()
 
+user_choosing_start = True
+start = grid[0][0]
+start_image = pygame.image.load("home.png")
 while user_choosing_start:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
         if pygame.mouse.get_pressed()[0]:
+            # Gets location of the click
             mouse_x, mouse_y = pygame.mouse.get_pos()
             start_x, start_y = mouse_x // box_width, mouse_y // box_length
-            if not grid[start_x][start_y].wall:
-                start = grid[start_x][start_y]
-            else:
-                continue
 
-            if start != grid[1][1]:
-                open_set.pop(0)
-                open_set.append(start)
+            # Marks start point to user
+            screen.blit(start_image, (start_x * box_width, start_y * box_length))
 
-            start.show(purple, 0)
+            # Sets start point
+            start = grid[start_x][start_y]
+            open_set.append(start)
+
+            """ TODO: Try to make start movable after placement. """
+            # if len(open_set) > 1:
+            #     if open_set[0] != open_set[1]:
+            #         screen.fill(off_white, pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, box_width-5, box_length-5))
+            #         open_set[0].show(off_white, 2)
+            #         # screen.blit(background_colour, pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, 100, 100),
+            #         # pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, box_width, box_length))
+            #
+            #         pygame.display.update()
+            #         print("Showing white at old start")
+            #     open_set.pop(0)
+
             pygame.display.update()
-
             user_choosing_start = False
-
             break
+
+        # if event.type == pygame.MOUSEBUTTONUP:
+            # intending to move the break and var change down here once above is done
+
+
 # Pop-up instructions for picking an end point
 if not skip.get():
     end_window = Tk()
@@ -275,19 +297,24 @@ if not skip.get():
     end_window.update()
     mainloop()
 
+user_choosing_end = True
+end_image = pygame.image.load("finish.png")
 while user_choosing_end:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
         if pygame.mouse.get_pressed()[0]:
+            # Gets position of clickscreen.blit(start_image, (start_x * box_width, start_y * box_length))
             mouse_x, mouse_y = pygame.mouse.get_pos()
             end_x, end_y = mouse_x // box_width, mouse_y // box_length
+
+            # Sets end point
             if not grid[end_x][end_y].wall and grid[start_x][start_y] != grid[end_x][end_y]:
                 end = grid[end_x][end_y]
+                screen.blit(end_image, (end_x * box_width, end_y * box_length))
             else:
                 continue
 
-            end.show(purple, 0)
             pygame.display.update()
 
             user_choosing_end = False
@@ -308,6 +335,7 @@ if not skip.get():
     wall_window.update()
     mainloop()
 
+user_choosing_walls = True
 while user_choosing_walls:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
