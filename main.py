@@ -152,8 +152,7 @@ def main():
             done_window.update()
             mainloop()
 
-            done = True
-            while done:
+            while done := True:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         sys.exit()
@@ -192,8 +191,7 @@ def main():
         done_window.update()
         mainloop()
 
-        done = True
-        while done:
+        while done := True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
@@ -351,8 +349,7 @@ while user_choosing_walls:
         pygame.display.update()
 
 # -------------------------------- MAIN LOOP -----------------------------------
-running = True
-while running:
+while running := True:
     event = pygame.event.poll()
     if event.type == pygame.QUIT:
         pygame.quit()
