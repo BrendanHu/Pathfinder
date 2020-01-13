@@ -5,6 +5,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 import pygame
+import time
 
 # Changes user's working directory to the location of the file (only really matters in Atom, in my experience)
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +16,7 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = "{0},{1}".format(screen_x, screen_y)
 # Initialize pygame
 pygame.init()
 # Create game window
-screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
+screen = pygame.display.set_mode((800, 800))
 # Title and icon
 pygame.display.set_caption("Pathfinder")
 # icon = pygame.image.load("sudoku.png")
@@ -25,6 +26,7 @@ pygame.display.set_caption("Pathfinder")
 class point:
     """Creates an object representing a point (square) on the grid."""
     def __init__(self, i, j):
+        """Point properties."""
         self.i = i
         self.j = j
         # cost function (how much time/resource allocation is required)
@@ -56,25 +58,26 @@ class point:
         if self.j < rows - 1:
             self.neighbours.append(grid[self.i][self.j + 1])
 
-    # for debugging
     def __repr__(self):
+        """Representation of a point for debugging."""
         return "Point with x = {}, y = {}".format(self.i, self.j)
 
 
-# create obstacles on mouse click
 def makeWall(x, y):
+    """Creates obstacles on mouse click, given x and y coordinates."""
     if grid[x][y] != start and grid[x][y] != end:
         if not grid[x][y].wall:
             grid[x][y].wall = True
             grid[x][y].show(wall_color, 0)
 
 
-# heuristic used by A* to estimate most optimal route
 def heuristic(a, b):
+    """Heuristic used by the A* search algorithm."""
     distance = m.sqrt(m.pow(b.i - a.i, 2) + m.pow(b.j - a.j, 2))
     # Manhattan distance can be used as an alternative to the straight line formula
     # distance = abs(a.i - b.i) + abs(a.j - b.j) TODO: if this is used, I'd have to figure out diagonals
     return distance
+
 
 # grid variables and creation
 rows = 50
@@ -89,12 +92,12 @@ for i in range(columns):
         grid[i][j] = point(i, j)
 
 # assorted variables
-gold = (255,234,171) # closed set colour
-wall_color = (0,0,0)
-green = (100,255,150) # open set colour
-path_colour = (171,192,255)
-grey = (112,128,144) # grid colour
-off_white = (240, 255, 255) # screen colour
+gold = (255, 234, 171)  # closed set colour
+wall_color = (0, 0, 0)
+green = (100, 255, 150)  # open set colour
+path_colour = (171, 192, 255)
+grey = (112, 128, 144)  # grid colour
+off_white = (240, 255, 255)  # screen colour
 box_width = 800 // columns
 box_length = 800 // rows
 path = []
@@ -128,21 +131,22 @@ def main():
 
         current = open_set[lowest_index]
         if current == end:
-            path_length = []
+            end_time = time.perf_counter()
+            path_length = 0
             # Calculates and renders path on screen
             for i in range(round(current.f)):
                 current.processed = False
                 if not current == end:
                     current.show(path_colour, 0)
                 current = current.previous
-                path_length.append(0)
+                path_length += 1
 
             # Display information for path found
             # TODO: Find a way to let the user exit without clicking the ok button
             done_window = Tk()
             done_window.title("Done!")
-            done_window.geometry("500x80+250+450")
-            distMsg = Label(done_window, text="The shortest path is {0} blocks long.".format(len(path_length)))
+            done_window.geometry("500x100+250+450")
+            distMsg = Label(done_window, text="The shortest path is {0} blocks long.\nTime elapsed: {1:0.2f} seconds".format(path_length, end_time - start_time))
             distMsg.config(font=("Arial", 18, "bold"))
             doneButton = Button(done_window, text="OK", command=done_window.destroy)
 
@@ -152,7 +156,8 @@ def main():
             done_window.update()
             mainloop()
 
-            while done := True:
+            done = True
+            while done is True:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         sys.exit()
@@ -178,10 +183,11 @@ def main():
                 neighbour.previous = current
     # given no solution, leave the window open and indicate this to the user
     else:
+        end_time = time.perf_counter()
         done_window = Tk()
         done_window.title("Done!")
-        done_window.geometry("250x80+400+450")
-        distMsg = Label(done_window, text="There is no path!  :(")
+        done_window.geometry("350x100+400+450")
+        distMsg = Label(done_window, text="There is no path!  :(\nTime elapsed: {0:0.2f} seconds".format(end_time - start_time))
         distMsg.config(font=("Arial", 18, "bold"))
         doneButton = Button(done_window, text="OK", command=done_window.destroy)
 
@@ -191,7 +197,8 @@ def main():
         done_window.update()
         mainloop()
 
-        while done := True:
+        done = True
+        while done is True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
@@ -349,7 +356,9 @@ while user_choosing_walls:
         pygame.display.update()
 
 # -------------------------------- MAIN LOOP -----------------------------------
-while running := True:
+start_time = time.perf_counter()
+running = True
+while running is True:
     event = pygame.event.poll()
     if event.type == pygame.QUIT:
         pygame.quit()
