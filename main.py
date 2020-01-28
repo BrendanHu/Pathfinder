@@ -16,7 +16,7 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = "{0},{1}".format(screen_x, screen_y)
 # Initialize pygame
 pygame.init()
 # Create game window
-screen = pygame.display.set_mode((800, 800))
+screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
 # Title and icon
 pygame.display.set_caption("Pathfinder")
 # icon = pygame.image.load("sudoku.png")
@@ -120,6 +120,8 @@ for i in range(columns):
 
 
 def main():
+    global open_set
+    global closed_set
     """Contains the A* algorithm."""
     # breaks the algorithm loop should there be no more points to search
     if len(open_set) != 0:
@@ -145,8 +147,10 @@ def main():
             # TODO: Find a way to let the user exit without clicking the ok button
             done_window = Tk()
             done_window.title("Done!")
-            done_window.geometry("500x100+250+450")
-            distMsg = Label(done_window, text="The shortest path is {0} blocks long.\nTime elapsed: {1:0.2f} seconds".format(path_length, end_time - start_time))
+            done_window.geometry("500x125+250+450")
+            distMsg = Label(done_window, text="The shortest path is {0} blocks long.".format(path_length) +
+                                            "\nTime elapsed: {0:0.2f} seconds".format(end_time - start_time) +
+                                            "\n If you want, press R to restart!")
             distMsg.config(font=("Arial", 18, "bold"))
             doneButton = Button(done_window, text="OK", command=done_window.destroy)
 
@@ -161,6 +165,19 @@ def main():
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         sys.exit()
+                    elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                        # makes the background off-white
+                        screen.fill(off_white)
+                        # create points on the grid
+                        for i in range(columns):
+                            for j in range(rows):
+                                grid[i][j] = point(i, j)
+                        # show squares and add neighbours
+                        for i in range(columns):
+                            for j in range(rows):
+                                grid[i][j].show(grey, 1)
+                                grid[i][j].addNeighbours(grid)
+                        startApp()
         # point has been processed, add to closed_set and remove from open_set
         closed_set.append(current)
         open_set.pop(lowest_index)
@@ -178,7 +195,8 @@ def main():
 
             neighbour.h = heuristic(neighbour, end)
             neighbour.f = neighbour.g + neighbour.h
-            # ensure previous isn't overwritten if it already exists
+            # ensure previous isn't overwritten if it already exists,
+            # then gives the next square the previous of the current one
             if neighbour.previous is None:
                 neighbour.previous = current
     # given no solution, leave the window open and indicate this to the user
@@ -186,8 +204,8 @@ def main():
         end_time = time.perf_counter()
         done_window = Tk()
         done_window.title("Done!")
-        done_window.geometry("350x100+400+450")
-        distMsg = Label(done_window, text="There is no path!  :(\nTime elapsed: {0:0.2f} seconds".format(end_time - start_time))
+        done_window.geometry("375x125+400+450")
+        distMsg = Label(done_window, text="There is no path!  :(\nTime elapsed: {0:0.2f} seconds\nIf you want, press R to restart!".format(end_time - start_time))
         distMsg.config(font=("Arial", 18, "bold"))
         doneButton = Button(done_window, text="OK", command=done_window.destroy)
 
@@ -202,6 +220,19 @@ def main():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                    # makes the background off-white
+                    screen.fill(off_white)
+                    # create points on the grid
+                    for i in range(columns):
+                        for j in range(rows):
+                            grid[i][j] = point(i, j)
+                    # show squares and add neighbours
+                    for i in range(columns):
+                        for j in range(rows):
+                            grid[i][j].show(grey, 1)
+                            grid[i][j].addNeighbours(grid)
+                    startApp()
     # shows algorithm at work
     if checked_show_steps.get():
         for spot in open_set:
@@ -214,153 +245,167 @@ def main():
     current.processed = True
 
 
-# ------------------------------------- START/END/COORDINATE CHOICE LOOPS ------------------------------------------
+def startApp():
+    """
+    Contains the game start user interface and a call to main().
+    """
+    global start
+    global end
+    global checked_show_steps
+    global start_time
+    global end_time
+    global open_set
+    global closed_set
 
-# Option to show algorithm visualizer and skip the tutorial
-window = Tk()
-window.geometry("250x80+400+200")
-window.title("A* Search")
-checked_show_steps = IntVar()
-skip = IntVar()
-showSteps = ttk.Checkbutton(window, text='Show steps ', onvalue=1, offvalue=0, variable=checked_show_steps)
-skip_button = ttk.Checkbutton(window, text='Skip tutorial', onvalue=1, offvalue=0, variable=skip)
+    open_set = []
+    closed_set = []
+    # Option to show algorithm visualizer and skip the tutorial
+    window = Tk()
+    window.geometry("250x80+400+200")
+    window.title("A* Search")
+    checked_show_steps = IntVar()
+    skip = IntVar()
+    showSteps = ttk.Checkbutton(window, text='Show steps ', onvalue=1, offvalue=0, variable=checked_show_steps)
+    skip_button = ttk.Checkbutton(window, text='Skip tutorial', onvalue=1, offvalue=0, variable=skip)
 
-submit = Button(window, text='Let\'s go!', command=window.destroy)
+    submit = Button(window, text='Let\'s go!', command=window.destroy)
 
-showSteps.pack()
-skip_button.pack()
-submit.pack()
+    showSteps.pack()
+    skip_button.pack()
+    submit.pack()
 
-window.update()
-mainloop()
-# Pop-up instructions for picking a start point
-if not skip.get():
-    start_window = Tk()
-    start_window.title("Instructions")
-    start_window.geometry("350x80+350+70")
-    start_instr = Label(start_window, text="Click on a square to pick\nit as the start point!")
-    start_instr.config(font=("Arial", 16, "bold"))
-    ok = Button(start_window, text="OK", command=start_window.destroy)
-
-    start_instr.pack()
-    ok.pack()
-
-    start_window.update()
+    window.update()
     mainloop()
+    # Pop-up instructions for picking a start point
+    if not skip.get():
+        start_window = Tk()
+        start_window.title("Instructions")
+        start_window.geometry("350x80+350+70")
+        start_instr = Label(start_window, text="Click on a square to pick\nit as the start point!")
+        start_instr.config(font=("Arial", 16, "bold"))
+        ok = Button(start_window, text="OK", command=start_window.destroy)
 
-user_choosing_start = True
-start = grid[0][0]
-start_image = pygame.image.load("home.png")
-while user_choosing_start:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-        if pygame.mouse.get_pressed()[0]:
-            # Gets location of the click
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            start_x, start_y = mouse_x // box_width, mouse_y // box_length
+        start_instr.pack()
+        ok.pack()
 
-            # Marks start point to user
-            screen.blit(start_image, (start_x * box_width, start_y * box_length))
+        start_window.update()
+        mainloop()
 
-            # Sets start point
-            start = grid[start_x][start_y]
-            open_set.append(start)
+    user_choosing_start = True
+    start = grid[0][0]
+    start_image = pygame.image.load("home.png")
+    while user_choosing_start:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if pygame.mouse.get_pressed()[0]:
+                # Gets location of the click
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                start_x, start_y = mouse_x // box_width, mouse_y // box_length
 
-            """ TODO: Try to make start movable after placement. """
-            # if len(open_set) > 1:
-            #     if open_set[0] != open_set[1]:
-            #         screen.fill(off_white, pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, box_width-5, box_length-5))
-            #         open_set[0].show(off_white, 2)
-            #         # screen.blit(background_colour, pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, 100, 100),
-            #         # pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, box_width, box_length))
-            #
-            #         pygame.display.update()
-            #         print("Showing white at old start")
-            #     open_set.pop(0)
+                # Marks start point to user
+                screen.blit(start_image, (start_x * box_width, start_y * box_length))
 
-            pygame.display.update()
-            user_choosing_start = False
-            break
+                # Sets start point
+                start = grid[start_x][start_y]
+                open_set.append(start)
+                """ TODO: Try to make start movable after placement. """
+                # if len(open_set) > 1:
+                #     if open_set[0] != open_set[1]:
+                #         screen.fill(off_white, pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, box_width-5, box_length-5))
+                #         open_set[0].show(off_white, 2)
+                #         # screen.blit(background_colour, pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, 100, 100),
+                #         # pygame.Rect(open_set[0].i * box_width, open_set[0].j * box_length, box_width, box_length))
+                #
+                #         pygame.display.update()
+                #         print("Showing white at old start")
+                #     open_set.pop(0)
 
-        # if event.type == pygame.MOUSEBUTTONUP:
-            # intending to move the break and var change down here once above is done
-
-
-# Pop-up instructions for picking an end point
-if not skip.get():
-    end_window = Tk()
-    end_window.title("Instructions")
-    end_window.geometry("350x80+350+70")
-    end_instr = Label(end_window, text="Click on a square to\npick it as the end point!")
-    end_instr.config(font=("Arial", 16, "bold"))
-    ok = Button(end_window, text="OK", command=end_window.destroy)
-
-    end_instr.pack()
-    ok.pack()
-
-    end_window.update()
-    mainloop()
-
-user_choosing_end = True
-end_image = pygame.image.load("finish.png")
-while user_choosing_end:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-        if pygame.mouse.get_pressed()[0]:
-            # Gets position of clickscreen.blit(start_image, (start_x * box_width, start_y * box_length))
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            end_x, end_y = mouse_x // box_width, mouse_y // box_length
-
-            # Sets end point
-            if not grid[end_x][end_y].wall and grid[start_x][start_y] != grid[end_x][end_y]:
-                end = grid[end_x][end_y]
-                screen.blit(end_image, (end_x * box_width, end_y * box_length))
-            else:
-                continue
-
-            pygame.display.update()
-
-            user_choosing_end = False
-            break
-
-if not skip.get():
-    wall_window = Tk()
-    wall_window.title("Instructions")
-    wall_window.geometry("800x70+100+90")
-    wall_instr = Label(wall_window, text="Click and drag with the mouse to create walls that the "
-                       "algorithm must path around.\nPress SPACE to start the program!")
-    wall_instr.config(font=("Arial", 14, "bold"))
-    ok = Button(wall_window, text="OK", command=wall_window.destroy)
-
-    wall_instr.pack()
-    ok.pack()
-
-    wall_window.update()
-    mainloop()
-
-user_choosing_walls = True
-while user_choosing_walls:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-        if pygame.mouse.get_pressed()[0]:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            box_x, box_y = mouse_x // box_width, mouse_y // box_length
-            makeWall(box_x, box_y)
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                user_choosing_walls = False
+                pygame.display.update()
+                user_choosing_start = False
                 break
-        pygame.display.update()
+
+            # if event.type == pygame.MOUSEBUTTONUP:
+                # intending to move the break and var change down here once above is done
+
+
+    # Pop-up instructions for picking an end point
+    if not skip.get():
+        end_window = Tk()
+        end_window.title("Instructions")
+        end_window.geometry("350x80+350+70")
+        end_instr = Label(end_window, text="Click on a square to\npick it as the end point!")
+        end_instr.config(font=("Arial", 16, "bold"))
+        ok = Button(end_window, text="OK", command=end_window.destroy)
+
+        end_instr.pack()
+        ok.pack()
+
+        end_window.update()
+        mainloop()
+
+    user_choosing_end = True
+    end_image = pygame.image.load("finish.png")
+    while user_choosing_end:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if pygame.mouse.get_pressed()[0]:
+                # Gets position of clickscreen.blit(start_image, (start_x * box_width, start_y * box_length))
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                end_x, end_y = mouse_x // box_width, mouse_y // box_length
+
+                # Sets end point
+                if not grid[end_x][end_y].wall and grid[start_x][start_y] != grid[end_x][end_y]:
+                    end = grid[end_x][end_y]
+                    screen.blit(end_image, (end_x * box_width, end_y * box_length))
+                else:
+                    continue
+
+                pygame.display.update()
+
+                user_choosing_end = False
+                break
+
+    if not skip.get():
+        wall_window = Tk()
+        wall_window.title("Instructions")
+        wall_window.geometry("800x70+100+90")
+        wall_instr = Label(wall_window, text="Click and drag with the mouse to create walls that the "
+                           "algorithm must path around.\nPress SPACE to start the program!")
+        wall_instr.config(font=("Arial", 14, "bold"))
+        ok = Button(wall_window, text="OK", command=wall_window.destroy)
+
+        wall_instr.pack()
+        ok.pack()
+
+        wall_window.update()
+        mainloop()
+
+    user_choosing_walls = True
+    while user_choosing_walls:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if pygame.mouse.get_pressed()[0]:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                box_x, box_y = mouse_x // box_width, mouse_y // box_length
+                makeWall(box_x, box_y)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    user_choosing_walls = False
+
+                    start_time = time.perf_counter()
+                    running = True
+                    while running is True:
+                        event = pygame.event.poll()
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
+                        pygame.display.update()
+                        main()
+
+                    break
+            pygame.display.update()
 
 # -------------------------------- MAIN LOOP -----------------------------------
-start_time = time.perf_counter()
-running = True
-while running is True:
-    event = pygame.event.poll()
-    if event.type == pygame.QUIT:
-        pygame.quit()
-    pygame.display.update()
-    main()
+startApp()
