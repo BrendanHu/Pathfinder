@@ -138,19 +138,27 @@ def main():
             # Calculates and renders path on screen
             for i in range(round(current.f)):
                 current.processed = False
-                if not current == end:
-                    current.show(path_colour, 0)
+                # if current != end:
+                current.show(path_colour, 0)
+                end_image = pygame.image.load("finish.png")
+                screen.blit(end_image, (end.i * box_width, end.j * box_length))
                 current = current.previous
                 path_length += 1
-
             # Display information for path found
             # TODO: Find a way to let the user exit without clicking the ok button
             done_window = Tk()
             done_window.title("Done!")
             done_window.geometry("500x125+250+450")
-            distMsg = Label(done_window, text="The shortest path is {0} blocks long.".format(path_length) +
+            if path_length == 1:
+                screen.blit(end_image, (end.i * box_width, end.j * box_length))
+                distMsg = Label(done_window, text="The shortest path is 1 block long.".format(path_length) +
+                                                "\nTime elapsed: {0:0.2f} seconds".format(end_time - start_time) +
+                                                "\n If you want, press R to restart!")
+            else:
+                distMsg = Label(done_window, text="The shortest path is {0} blocks long.".format(path_length) +
                                             "\nTime elapsed: {0:0.2f} seconds".format(end_time - start_time) +
                                             "\n If you want, press R to restart!")
+
             distMsg.config(font=("Arial", 18, "bold"))
             doneButton = Button(done_window, text="OK", command=done_window.destroy)
 
